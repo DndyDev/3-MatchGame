@@ -10,14 +10,14 @@ public class Playground : MonoBehaviour
     [SerializeField] private float spacing;
 
 
-    [SerializeField] private GameObject tile;
+    [SerializeField] private GameObject node;
     //[SerializeField] private Timer timer;
 
-    private GameObject[,] gridTiles;
+    private GameObject[,] nodes;
 
     void Start()
     {
-        gridTiles = new GameObject[width, height];
+        nodes = new GameObject[width, height];
         createPlayground();
     }
 
@@ -37,10 +37,11 @@ public class Playground : MonoBehaviour
             for(int x = 0; x < height; x++)
             {
                 posX += spacing;
-                gridTiles[x,y] =  Instantiate(tile, new Vector2(
-                    transform.position.x + posX * tile.transform.localScale.x ,
-                    transform.position.y + posY * tile.transform.localScale.y
+                nodes[x,y] =  Instantiate(node, new Vector2(
+                    transform.position.x + posX * node.transform.localScale.x ,
+                    transform.position.y + posY * node.transform.localScale.y
                     ),Quaternion.identity, parentTransform);
+                nodes[x, y].name = "Node-" + (y + x);
             }
             posY -= spacing;
             posX = tempX;
