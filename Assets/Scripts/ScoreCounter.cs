@@ -10,7 +10,5 @@ class ScoreCounter : MonoBehaviour
         {
             this.score += score;
         }
-        
-
     }
 
