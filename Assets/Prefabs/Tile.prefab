@@ -10,8 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2883961813051751029}
   - component: {fileID: 6706820970682679148}
-  - component: {fileID: -1984125164125829543}
+  - component: {fileID: 2487996705222216962}
   - component: {fileID: 8743730453253973129}
+  - component: {fileID: 8339604882044158034}
   m_Layer: 0
   m_Name: Tile
   m_TagString: Untagged
@@ -76,7 +77,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0, g: 0.7169812, b: 0.05048522, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -86,7 +87,7 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &-1984125164125829543
+--- !u!114 &2487996705222216962
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -95,11 +96,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 9220528899811721044}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e34d6587fcaf2004b975b7a2dcfcc5d3, type: 3}
+  m_Script: {fileID: 11500000, guid: 382a3f58568510d4099c920522aaa21d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sprite: {fileID: 6706820970682679148}
-  highlight: {fileID: 5460788342865006219, guid: b0c103dab6630b94599115fa3ae442c5, type: 3}
+  renderer: {fileID: 6706820970682679148}
 --- !u!61 &8743730453253973129
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -126,3 +126,17 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &8339604882044158034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9220528899811721044}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e34d6587fcaf2004b975b7a2dcfcc5d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sprite: {fileID: 6706820970682679148}
+  highlight: {fileID: 0}

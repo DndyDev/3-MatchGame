@@ -1,42 +1,40 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Pool;
 
 public class Match3Control : MonoBehaviour
 {
 
-	private enum Mode { MatchOnly, FreeMove };
-
-	[SerializeField] private Mode mode; // два режима перемещения, 'MatchOnly' означает, что передвинуть узел можно если произошло совпадение, иначе произойдет возврат
-	[SerializeField] private float speed = 5.5f; // скорость движения объектов
+	[SerializeField] private float speed = 400; // скорость движения объектов
 	[SerializeField] private float destroyTimeout = .5f; // пауза в секундах, перед тем как уничтожить совпадения
 	[SerializeField] private LayerMask layerMask; // маска узла (префаба)
-	[SerializeField] private Color[] color; // набор цветов/id
+	[SerializeField] private Sprite[] sprites; // набор цветов/id
 	[SerializeField] private int gridWidth = 7; // ширина игрового поля
 	[SerializeField] private int gridHeight = 10; // высота игрового поля
 	[SerializeField] private Match3Node sampleObject; // образец узла (префаб)
-	[SerializeField] private float sampleSize = 1; // размер узла (ширина и высота)
+	[SerializeField] private float spacing = 1.3f; // размер узла (ширина и высота)
 
+	private Match3Pool<Match3Node> nodePool;
 	private Match3Node[,] grid;
 	private Match3Node[] nodeArray;
 	private Vector3[,] position;
 	private Match3Node current, last;
 	private Vector3 currentPos, lastPos;
-	private List<Match3Node> lines;
+	private List<Match3Node> matches;
 	private bool isLines, isMove, isMode;
 	private float timeout;
 
 	void Start()
 	{
-		// создание игрового поля (2D массив) с заданными параметрами
-		grid = Create2DGrid<Match3Node>(sampleObject, gridWidth, gridHeight, sampleSize, transform);
-
-        SetupField();
+		nodePool = new Match3Pool<Match3Node>();
+		grid = Create2DGrid<Match3Node>(sampleObject,gridWidth, gridHeight, spacing);
+        InittiatePlayground();
     }
 
 	void Update()
 	{
-        DestroyLines();
+        DestroyMatches();
 
         MoveNodes();
 
@@ -51,10 +49,13 @@ public class Match3Control : MonoBehaviour
             MoveCurrent();
         }
     }
-    void SetupField() // стартовые установки, подготовка игрового поля
+	/// <summary>
+	/// Подготовка игрового поля
+	/// </summary>
+    void InittiatePlayground()
 	{
-		position = new Vector3[gridWidth, gridHeight];
-		nodeArray = new Match3Node[gridWidth * gridHeight];
+        position = new Vector3[gridWidth, gridHeight];
+        nodeArray = new Match3Node[gridWidth * gridHeight];
 
 		int i = 0;
 		int id = -1;
@@ -64,12 +65,12 @@ public class Match3Control : MonoBehaviour
 		{
 			for (int x = 0; x < gridWidth; x++)
 			{
-				int colorId = Random.Range(0, color.Length);
-				if (id != colorId) id = colorId; else step++;
+				int spriteId = Random.Range(0, sprites.Length);
+				if (id != spriteId) id = spriteId; else step++;
 				if (step > 2)
 				{
 					step = 0;
-					id = (id + 1 < color.Length - 1) ? id + 1 : id - 1;
+					id = (id + 1 < sprites.Length - 1) ? id + 1 : id - 1;
 					id = id + 1;
 				}
 
@@ -77,7 +78,7 @@ public class Match3Control : MonoBehaviour
 				grid[x, y].x = x;
 				grid[x, y].y = y;
 				grid[x, y].id = id;
-				grid[x, y].sprite.color = color[id];
+				grid[x, y].sprite.sprite = sprites[id];
 				grid[x, y].gameObject.SetActive(true);
 				grid[x, y].highlight.SetActive(false);
 				position[x, y] = grid[x, y].transform.position;
@@ -90,7 +91,10 @@ public class Match3Control : MonoBehaviour
 		last = null;
 	}
 
-	void DestroyLines() // уничтожаем совпадения с задержкой
+	/// <summary>
+	/// Удаление совпадений
+	/// </summary>
+	void DestroyMatches()
 	{
 		if (!isLines) return;
 
@@ -98,17 +102,17 @@ public class Match3Control : MonoBehaviour
 
 		if (timeout > destroyTimeout)
 		{
-			for (int i = 0; i < lines.Count; i++)
+			for (int i = 0; i < matches.Count; i++)
 			{
 				// здесь можно подсчитывать очки +1
-				lines[i].gameObject.SetActive(false);
-				grid[lines[i].x, lines[i].y] = null;
+				nodePool.ReturnObject(matches[i]);
+				grid[matches[i].x, matches[i].y] = null;
 
-				for (int y = lines[i].y - 1; y >= 0; y--)
+				for (int y = matches[i].y - 1; y >= 0; y--)
 				{
-					if (grid[lines[i].x, y] != null)
+					if (grid[matches[i].x, y] != null)
 					{
-						grid[lines[i].x, y].move = true;
+						grid[matches[i].x, y].move = true;
 					}
 				}
 			}
@@ -118,7 +122,10 @@ public class Match3Control : MonoBehaviour
 		}
 	}
 
-	void MoveNodes() // передвижение узлов и заполнение поля, после проверки совпадений
+	/// <summary>
+	/// Сдвиг узлов
+	/// </summary>
+	void MoveNodes() // 
 	{
 		if (!isMove) return;
 
@@ -134,7 +141,7 @@ public class Match3Control : MonoBehaviour
 					{
 						if (grid[i, 0] == null)
 						{
-							grid[i, 0] = GetFree(position[i, 0]);
+							grid[i, 0] = GetNewNode(position[i, 0]);
 						}
 					}
 
@@ -148,7 +155,7 @@ public class Match3Control : MonoBehaviour
 						isMove = false;
 						GridUpdate();
 
-						if (IsLine())
+						if (IsMatche())
 						{
 							timeout = 0;
 							isLines = true;
@@ -175,25 +182,21 @@ public class Match3Control : MonoBehaviour
 		}
 	}
 
-	Match3Node GetFree(Vector3 pos) // возвращает неактивный узел
+	/// <summary>
+	/// Возвращает новую фишку
+	/// </summary>
+	/// <param name="pos">позиция фишки</param>
+	/// <returns></returns>
+	Match3Node GetNewNode(Vector3 pos)
 	{
-		for (int i = 0; i < nodeArray.Length; i++)
-		{
-			if (!nodeArray[i].gameObject.activeSelf)
-			{
-				int j = Random.Range(0, color.Length);
-				nodeArray[i].id = j;
-				nodeArray[i].sprite.color = color[j];
-				nodeArray[i].transform.position = pos;
-				nodeArray[i].gameObject.SetActive(true);
-				return nodeArray[i];
-			}
-		}
-
-		return null;
+		int j = Random.Range(0, sprites.Length);		
+		return nodePool.GetObject(j, sprites[j], pos);
 	}
 
-	void GridUpdate() // обновление игрового поля с помощью рейкаста
+	/// <summary>
+	/// Обновление поля 
+	/// </summary>
+	void GridUpdate()
 	{
 		for (int y = 0; y < gridHeight; y++)
 		{
@@ -212,7 +215,10 @@ public class Match3Control : MonoBehaviour
 		}
 	}
 
-	void MoveCurrent() // перемещение выделенного мышкой узла
+	/// <summary>
+	/// Перемещение узла игрока
+	/// </summary>
+	void MoveCurrent()
 	{
 		current.transform.position = Vector3.MoveTowards(current.transform.position, lastPos, speed * Time.deltaTime);
 		last.transform.position = Vector3.MoveTowards(last.transform.position, currentPos, speed * Time.deltaTime);
@@ -221,7 +227,7 @@ public class Match3Control : MonoBehaviour
 		{
 			GridUpdate();
 
-			if (mode == Mode.MatchOnly && isMode && !CheckNearNodes(current) && !CheckNearNodes(last))
+			if (isMode && !CheckNearNodes(current) && !CheckNearNodes(last))
 			{
 				currentPos = position[current.x, current.y];
 				lastPos = position[last.x, last.y];
@@ -236,7 +242,7 @@ public class Match3Control : MonoBehaviour
 			current = null;
 			last = null;
 
-			if (IsLine())
+			if (IsMatche())
 			{
 				timeout = 0;
 				isLines = true;
@@ -244,7 +250,12 @@ public class Match3Control : MonoBehaviour
 		}
 	}
 
-	bool CheckNearNodes(Match3Node node) // проверка, возможно-ли совпадение на текущем ходу
+	/// <summary>
+	/// Проверка есть ли соседы у текущей фишки
+	/// </summary>
+	/// <param name="node">Фишка</param>
+	/// <returns>bool</returns>
+	bool CheckNearNodes(Match3Node node)
 	{
 		if (node.x - 2 >= 0)
 			if (grid[node.x - 1, node.y].id == node.id && grid[node.x - 2, node.y].id == node.id) return true;
@@ -267,7 +278,12 @@ public class Match3Control : MonoBehaviour
 		return false;
 	}
 
-	void SetNode(Match3Node node, bool value) // метка для узлов, которые находятся рядом с выбранным (чтобы нельзя было выбрать другие)
+	/// <summary>
+	/// Запрет на перемещение соседних фишек
+	/// </summary>
+	/// <param name="node">фишка</param>
+	/// <param name="value">флаг</param>
+	void SetNode(Match3Node node, bool value) 
 	{
 		if (node == null) return;
 
@@ -277,7 +293,10 @@ public class Match3Control : MonoBehaviour
 		if (node.y + 1 < gridHeight) grid[node.x, node.y + 1].ready = value;
 	}
 
-	void Control() // управление ЛКМ
+	/// <summary>
+	/// Управление игрока
+	/// </summary>
+	void Control()
 	{
 		if (Input.GetMouseButtonDown(0) && !isMode)
 		{
@@ -312,11 +331,15 @@ public class Match3Control : MonoBehaviour
 		}
 	}
 
-	bool IsLine() // поиск совпадений по горизонтали и вертикали
+	/// <summary>
+	/// Проверка совпаденений по горизонтали и вертикали
+	/// </summary>
+	/// <returns></returns>
+	bool IsMatche()
 	{
 		int j = -1;
 
-		lines = new List<Match3Node>();
+		matches = new List<Match3Node>();
 
 		for (int y = 0; y < gridHeight; y++)
 		{
@@ -329,7 +352,7 @@ public class Match3Control : MonoBehaviour
 
 				if (j == grid[x, y].id)
 				{
-					lines.Add(grid[x, y]);
+					matches.Add(grid[x, y]);
 				}
 				else
 				{
@@ -353,7 +376,7 @@ public class Match3Control : MonoBehaviour
 
 				if (j == grid[y, x].id)
 				{
-					lines.Add(grid[y, x]);
+					matches.Add(grid[y, x]);
 				}
 				else
 				{
@@ -364,16 +387,24 @@ public class Match3Control : MonoBehaviour
 			j = -1;
 		}
 
-		return (lines.Count > 0) ? true : false;
+		return (matches.Count > 0) ? true : false;
 	}
 
-	// функция создания 2D массива на основе шаблона
-	private T[,] Create2DGrid<T>(T sample, int width, int height, float size, Transform parent) where T : Object
+	/// <summary>
+	/// Создание поля
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <param name="prefab">Тип фшки</param>
+	/// <param name="width">Ширина поля</param>
+	/// <param name="height">Высота поля</param>
+	/// <param name="spacing">Расстояние между фишками</param>
+	/// <returns></returns>
+	private T[,] Create2DGrid<T>(T prefab, int width, int height, float spacing) where T : MonoBehaviour
 	{
 		T[,] field = new T[width, height];
 
-		float posX = (width - 1) * -size / 2f;
-		float posY = size * height / 2f - size / 2f;
+		float posX = (width + 1) * -spacing / 2f;
+		float posY = (height - 1) * spacing / 2f;
 
 		float Xreset = posX;
 
@@ -383,12 +414,15 @@ public class Match3Control : MonoBehaviour
 		{
 			for (int x = 0; x < width; x++)
 			{
-				posX += size;
-				field[x, y] = Instantiate(sample, new Vector3( parent.position.x + posX, parent.position.y + posY, 0), Quaternion.identity, parent) as T;
+				posX += spacing;
+				field[x, y] = Instantiate(prefab, new Vector2( 
+					transform.position.x + posX * prefab.transform.localScale.x, 
+					transform.position.y + posY * prefab.transform.localScale.y), 
+					Quaternion.identity) as T;
 				field[x, y].name = "Node-" + z;
 				z++;
 			}
-			posY -= size;
+			posY -= spacing;
 			posX = Xreset;
 		}
 
