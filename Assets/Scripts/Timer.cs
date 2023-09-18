@@ -4,10 +4,8 @@ using UnityEngine;
 
 public class Timer : MonoBehaviour
 {
-    [SerializeField] private int timeRemaining = 30;
+    [SerializeField] private int timeRemaining = 30; public int TimeRemeining { get { return timeRemaining; } set { timeRemaining = value; } }
 
-
-    // Update is called once per frame
     void Update()
     {
         if(timeRemaining > 0)

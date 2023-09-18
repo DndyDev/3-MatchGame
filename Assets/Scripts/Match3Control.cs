@@ -20,9 +20,17 @@ public class Match3Control : MonoBehaviour
 	private Match3Node[] nodeArray;
 	private Vector3[,] position;
 	private Match3Node current, last;
+		public Match3Node Last { get { return last; } set { last = value; }}
+		public Match3Node Current { get { return current; } set { current = value; }}
+
 	private Vector3 currentPos, lastPos;
+	public Vector3 LastPos { get { return lastPos; } set { lastPos = value; } }
+	public Vector3 CurrentPos { get { return currentPos; } set { currentPos = value; } }
 	private List<Match3Node> matches;
-	private bool isLines, isMove, isMode;
+	private bool isLines, isMove, isMode; 
+		public bool IsMode { get { return isMode; } set {isMode = value; } }
+		public bool IsLines { get { return isLines; } set {isLines = value; } }
+		public bool IsMove { get { return isMove; } set {isMove = value; } }
 	private float timeout;
 
 	void Start()
@@ -38,16 +46,6 @@ public class Match3Control : MonoBehaviour
 
         MoveNodes();
 
-        if (isLines || isMove) return;
-
-        if (last == null)
-        {
-            Control();
-        }
-        else
-        {
-            MoveCurrent();
-        }
     }
 	/// <summary>
 	/// Подготовка игрового поля
@@ -218,7 +216,7 @@ public class Match3Control : MonoBehaviour
 	/// <summary>
 	/// Перемещение узла игрока
 	/// </summary>
-	void MoveCurrent()
+	 public void MoveCurrent()
 	{
 		current.transform.position = Vector3.MoveTowards(current.transform.position, lastPos, speed * Time.deltaTime);
 		last.transform.position = Vector3.MoveTowards(last.transform.position, currentPos, speed * Time.deltaTime);
@@ -283,7 +281,7 @@ public class Match3Control : MonoBehaviour
 	/// </summary>
 	/// <param name="node">фишка</param>
 	/// <param name="value">флаг</param>
-	void SetNode(Match3Node node, bool value) 
+	public void SetNode(Match3Node node, bool value) 
 	{
 		if (node == null) return;
 
@@ -293,43 +291,6 @@ public class Match3Control : MonoBehaviour
 		if (node.y + 1 < gridHeight) grid[node.x, node.y + 1].ready = value;
 	}
 
-	/// <summary>
-	/// Управление игрока
-	/// </summary>
-	void Control()
-	{
-		if (Input.GetMouseButtonDown(0) && !isMode)
-		{
-			RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero, Mathf.Infinity, layerMask);
-
-			if (hit.transform != null && current == null)
-			{
-				current = hit.transform.GetComponent<Match3Node>();
-				SetNode(current, true);
-				current.highlight.SetActive(true);
-			}
-			else if (hit.transform != null && current != null)
-			{
-				last = hit.transform.GetComponent<Match3Node>();
-
-				if (last != null && !last.ready)
-				{
-					current.highlight.SetActive(false);
-					last.highlight.SetActive(true);
-					SetNode(current, false);
-					SetNode(last, true);
-					current = last;
-					last = null;
-					return;
-				}
-
-				current.highlight.SetActive(false);
-				currentPos = current.transform.position;
-				lastPos = last.transform.position;
-				isMode = true;
-			}
-		}
-	}
 
 	/// <summary>
 	/// Проверка совпаденений по горизонтали и вертикали
