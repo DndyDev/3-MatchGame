@@ -14,6 +14,7 @@ public class Match3Control : MonoBehaviour
 	[SerializeField] private int gridHeight = 10; // высота игрового поля
 	[SerializeField] private Match3Node sampleObject; // образец узла (префаб)
 	[SerializeField] private float spacing = 1.3f; // размер узла (ширина и высота)
+	[SerializeField] private ScoreCounter score;
 
 	private Match3Pool<Match3Node> nodePool;
 	private Match3Node[,] grid;
@@ -37,7 +38,7 @@ public class Match3Control : MonoBehaviour
 	{
 		nodePool = new Match3Pool<Match3Node>();
 		grid = Create2DGrid<Match3Node>(sampleObject,gridWidth, gridHeight, spacing);
-        InittiatePlayground();
+        InitiatePlayground();
     }
 
 	void Update()
@@ -47,10 +48,25 @@ public class Match3Control : MonoBehaviour
         MoveNodes();
 
     }
+
+	public void Restart()
+	{
+		nodePool.Clear();
+		for (int y = 0; y < gridHeight; y++)
+		{
+			for (int x = 0; x < gridWidth; x++)
+			{
+				//nodePool.ReturnObject(grid[x, y]);
+				grid[x, y] = null;
+
+			}
+		}
+		InitiatePlayground();
+	}
 	/// <summary>
 	/// Подготовка игрового поля
 	/// </summary>
-    void InittiatePlayground()
+    void InitiatePlayground()
 	{
         position = new Vector3[gridWidth, gridHeight];
         nodeArray = new Match3Node[gridWidth * gridHeight];
@@ -95,15 +111,18 @@ public class Match3Control : MonoBehaviour
 	void DestroyMatches()
 	{
 		if (!isLines) return;
-
+		int piecesNumber = 0;
+		List<Match3Node> nodes = new List<Match3Node>();
 		timeout += Time.deltaTime;
 
 		if (timeout > destroyTimeout)
 		{
+			if(matches.Count > 0)
+			
 			for (int i = 0; i < matches.Count; i++)
 			{
-				// здесь можно подсчитывать очки +1
-				nodePool.ReturnObject(matches[i]);
+	
+                nodePool.ReturnObject(matches[i]);
 				grid[matches[i].x, matches[i].y] = null;
 
 				for (int y = matches[i].y - 1; y >= 0; y--)
@@ -117,13 +136,13 @@ public class Match3Control : MonoBehaviour
 
 			isMove = true;
 			isLines = false;
-		}
+        }
 	}
 
 	/// <summary>
 	/// Сдвиг узлов
 	/// </summary>
-	void MoveNodes() // 
+	void MoveNodes() 
 	{
 		if (!isMove) return;
 
@@ -301,25 +320,34 @@ public class Match3Control : MonoBehaviour
 		int j = -1;
 
 		matches = new List<Match3Node>();
+		
+		int bufferMatches = 0;
 
 		for (int y = 0; y < gridHeight; y++)
 		{
 			for (int x = 0; x < gridWidth; x++)
 			{
+
 				if (x + 2 < gridWidth && j < 0 && grid[x + 1, y].id == grid[x, y].id && grid[x + 2, y].id == grid[x, y].id)
 				{
+
 					j = grid[x, y].id;
 				}
 
 				if (j == grid[x, y].id)
 				{
 					matches.Add(grid[x, y]);
+					bufferMatches++;
 				}
 				else
 				{
+					if (bufferMatches > 0) score.addScore(bufferMatches);
+					bufferMatches = 0;
 					j = -1;
 				}
+				
 			}
+
 
 			j = -1;
 		}
@@ -338,10 +366,13 @@ public class Match3Control : MonoBehaviour
 				if (j == grid[y, x].id)
 				{
 					matches.Add(grid[y, x]);
-				}
-				else
+					bufferMatches++;
+                }
+                else
 				{
-					j = -1;
+					if(bufferMatches > 0) score.addScore(bufferMatches);
+                    bufferMatches = 0;
+                    j = -1;
 				}
 			}
 

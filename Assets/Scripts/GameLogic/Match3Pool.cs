@@ -26,5 +26,9 @@ namespace Pool
             obj.gameObject.SetActive(false);
             objects.Enqueue(obj);
         }
+        public void Clear()
+        {
+            objects.Clear();
+        }
     }
 }

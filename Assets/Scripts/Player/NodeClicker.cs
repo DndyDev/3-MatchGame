@@ -5,12 +5,11 @@ using UnityEngine;
     {
 		[SerializeField] Match3Control playground;
 		[SerializeField] private LayerMask layerMask;
-		[SerializeField] private Timer timer;
 
 	private void Update()
     {
 		
-        if (playground.IsLines || playground.IsMove || timer.TimeRemeining < 0) return;
+        if (playground.IsLines || playground.IsMove) return;
 
         if (playground.Last == null)
 		{
